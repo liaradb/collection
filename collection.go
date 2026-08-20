@@ -2,6 +2,7 @@ package collection
 
 import (
 	"container/list"
+	"context"
 	"iter"
 )
 
@@ -36,6 +37,23 @@ func NewFromList[T any](l *list.List) Collection[T] {
 					return
 				}
 				e = e.Next()
+			}
+		},
+	}
+}
+
+func NewFromChan[T any](ctx context.Context, ch <-chan T) Collection[T] {
+	return Collection[T]{
+		i: func(yield func(T) bool) {
+			for {
+				select {
+				case t, ok := <-ch:
+					if !ok || !yield(t) {
+						return
+					}
+				case <-ctx.Done():
+					return
+				}
 			}
 		},
 	}

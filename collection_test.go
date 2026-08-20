@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"testing"
+	"testing/synctest"
 )
 
 func TestCollection(t *testing.T) {
@@ -23,4 +24,27 @@ func TestCollection(t *testing.T) {
 	if !slices.Equal(result, want) {
 		t.Errorf("incorrec result: %v, expected: %v", result, want)
 	}
+}
+
+func TestNewFromChan(t *testing.T) {
+	t.Parallel()
+	synctest.Test(t, func(t *testing.T) {
+		want := []string{"0", "1", "2"}
+
+		ch := make(chan int)
+		go func() {
+			for i := range 3 {
+				ch <- i
+			}
+			close(ch)
+		}()
+
+		result := NewFromChan(t.Context(), ch).
+			Map(func(i int) string { return fmt.Sprintf("%v", i) }).
+			Slice()
+
+		if !slices.Equal(result, want) {
+			t.Errorf("incorrec result: %v, expected: %v", result, want)
+		}
+	})
 }
